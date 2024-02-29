@@ -119,32 +119,33 @@ class Board:
 
 '''
 
-  def upgrade_board(self, ship):
-    ship_pos = []
-    for key, values in coordinates_game.items():
-      if values.get('cardinal') == ship.all_coordinates[0]:
-        ship_pos.append(key)
-      elif values.get('cardinal') == ship.all_coordinates[-1]:
-        ship_pos.append(key)
-      elif values.get('cardinal') in ship.all_coordinates[1:]:
-        ship_pos.append(key)
+  def upgrade_board(self, player):
+    for ship in player.fleet:
+      ship_pos = []
+      for key, values in coordinates_game.items():
+        if values.get('cardinal') == ship.all_coordinates[0]:
+          ship_pos.append(key)
+        elif values.get('cardinal') == ship.all_coordinates[-1]:
+          ship_pos.append(key)
+        elif values.get('cardinal') in ship.all_coordinates[1:]:
+          ship_pos.append(key)
 
-    if ship.orientation == 'h':
-      index = coordinates_game.get(ship_pos[0])['pos']
-      self.board_status = self.board_status[:index] + '<' + self.board_status[index+1:]
-      index = coordinates_game.get(ship_pos[-1])['pos']
-      self.board_status = self.board_status[:index] + '>' + self.board_status[index+1:]
-      for i in ship_pos[1:-1]:
-        index = coordinates_game.get(i)['pos']
-        self.board_status = self.board_status[:index] + '◘' + self.board_status[index+1:]
-    elif ship.orientation == 'v':
-      index = coordinates_game.get(ship_pos[0])['pos']
-      self.board_status = self.board_status[:index] + '∆' + self.board_status[index+1:]
-      index = coordinates_game.get(ship_pos[-1])['pos']
-      self.board_status = self.board_status[:index] + '∇' + self.board_status[index+1:]
-      for i in ship_pos[1:-1]:
-        index = coordinates_game.get(i)['pos']
-        self.board_status = self.board_status[:index] + '◘' + self.board_status[index+1:]
+      if ship.orientation == 'h':
+        index = coordinates_game.get(ship_pos[0])['pos']
+        self.board_status = self.board_status[:index] + '<' + self.board_status[index+1:]
+        index = coordinates_game.get(ship_pos[-1])['pos']
+        self.board_status = self.board_status[:index] + '>' + self.board_status[index+1:]
+        for i in ship_pos[1:-1]:
+          index = coordinates_game.get(i)['pos']
+          self.board_status = self.board_status[:index] + '◘' + self.board_status[index+1:]
+      elif ship.orientation == 'v':
+        index = coordinates_game.get(ship_pos[0])['pos']
+        self.board_status = self.board_status[:index] + '∆' + self.board_status[index+1:]
+        index = coordinates_game.get(ship_pos[-1])['pos']
+        self.board_status = self.board_status[:index] + '∇' + self.board_status[index+1:]
+        for i in ship_pos[1:-1]:
+          index = coordinates_game.get(i)['pos']
+          self.board_status = self.board_status[:index] + '◘' + self.board_status[index+1:]
 
   def __repr__(self):
     return self.board_status
@@ -152,12 +153,13 @@ class Board:
 
 ivan = Player('Iván')
 ivan.fleet.append(Ship(ivan, (1, 3), 'C3', 'v'))
+ivan.fleet.append(Ship(ivan, (1,2), 'A2', 'h'))
 # michelle = Player('Michelle')
 # michelle.fleet.append(Ship(michelle, (1, 2), 'C3'))
 # print(len(michelle.fleet))
 
 
 board_ivan = Board(ivan)
-board_ivan.upgrade_board(ivan.fleet[0])
+board_ivan.upgrade_board(ivan)
 print(board_ivan)
 
