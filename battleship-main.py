@@ -41,16 +41,22 @@ class Player:
     return "The player {name_player} has {ships_player} ships left in {turns_player}.".format(self.name, len(self.fleet), self.turns)
 
   def attack(self, coordinates_att, other_player):
+    coordinates_att = coordinates_game[coordinates_att]['cardinal']
+    hit_counter_temp = 0
     for other_ship in other_player.fleet:
       if coordinates_att[0] in other_ship.coordinates[0] and coordinates_att[1] in other_ship.coordinates[1]:
         print('HIT!')
-        self.shot_log.append(coordinates_att)
-        hit = (coordinates_att[0] - other_ship.initial_coordinates[0], coordinates_att[1] - other_ship.initial_coordinates[1])
-        other_ship.hit_map[hit[0]][hit[1]] = 1
-
+        other_player.shot_log.append(coordinates_att)
+        # hit = (coordinates_att[0] - other_ship.initial_coordinates[0], coordinates_att[1] - other_ship.initial_coordinates[1])
+        other_ship.hit_count -= 1
+        hit_counter_temp += 1
+        other_ship.checkIfSunk()
+        break
       else:
-        print('MISS!')
-        self.shot_log.append(coordinates_att)
+        continue
+    if hit_counter_temp == 0:
+      print('MISS!')
+      other_player.shot_log.append(coordinates_att)
     print('attack finished')
   
 
@@ -61,6 +67,8 @@ class Ship:
     self.orientation = orientation
     self.initial_coordinates = coordinates_game[coordinate]['cardinal']
     self.coordinate = coordinates_game[coordinate]['cardinal']
+    self.is_sunk = False
+    self.hit_count = dimensions[0]*dimensions[1]
     if orientation == 'h':
       if self.coordinate[1] > 6-dimensions[1]:
         raise ValueError("Invalid positioning. Ship doesn't fit.")
@@ -85,16 +93,19 @@ class Ship:
     for i in self.coordinates[0]:
       for j in self.coordinates[1]:
         self.all_coordinates.append((i,j))
-    self.hit_map = [a * [0] for a in self.size]
-    self.is_sunk = False
+    
+    for ship_owner in owner.fleet:
+      for ship_owner_coord in ship_owner.all_coordinates:
+        if ship_owner_coord in self.all_coordinates:
+          raise ValueError("Invalid coordinate. Ship doesn't fit.")
+        else:
+          pass
   
-  def count_hit(self):
-    hit_counter = 0
-    for i in self.hit_map:
-      hit_counter += i.count(1) 
-    return hit_counter
+  def checkIfSunk(self):
+    if self.hit_count == 0:
+      self.is_sunk = True
+      print(f"Ship from {self.belongs_to} is sunk!.")
   
-
   def __repr__(self):
     return f"This ship belongs to {self.belongs_to} its dimensions are {self.size} and has been hit {self.count_hit()} times."
 
@@ -118,8 +129,9 @@ class Board:
    +---+---+---+---+---+
 
 '''
+    self.set_board(player)
 
-  def upgrade_board(self, player):
+  def set_board(self, player):
     for ship in player.fleet:
       ship_pos = []
       for key, values in coordinates_game.items():
@@ -146,6 +158,13 @@ class Board:
         for i in ship_pos[1:-1]:
           index = coordinates_game.get(i)['pos']
           self.board_status = self.board_status[:index] + '◘' + self.board_status[index+1:]
+  
+  def update_board(self, player):
+    for i in player.shot_log:
+      for key, value in coordinates_game.items():
+        if str(i) in str(value):
+          index = coordinates_game[key]['pos']
+          self.board_status = self.board_status[:index] + 'X' + self.board_status[index+1:]
 
   def __repr__(self):
     return self.board_status
@@ -154,12 +173,22 @@ class Board:
 ivan = Player('Iván')
 ivan.fleet.append(Ship(ivan, (1, 3), 'C3', 'v'))
 ivan.fleet.append(Ship(ivan, (1,2), 'A2', 'h'))
-# michelle = Player('Michelle')
-# michelle.fleet.append(Ship(michelle, (1, 2), 'C3'))
+
+michelle = Player('Michelle')
+michelle.fleet.append(Ship(michelle, (1, 3), 'C3', 'v'))
+michelle.fleet.append(Ship(michelle, (1,2), 'A2', 'h'))
 # print(len(michelle.fleet))
 
-
 board_ivan = Board(ivan)
-board_ivan.upgrade_board(ivan)
+board_michelle = Board(michelle)
 print(board_ivan)
+
+ivan.attack('C1', michelle)
+print(michelle.fleet[0].hit_count)
+ivan.attack('C2', michelle)
+print(michelle.fleet[0].hit_count)
+ivan.attack('C3', michelle)
+board_michelle.update_board(michelle)
+print(michelle.fleet[0].hit_count)
+print(board_michelle)
 
