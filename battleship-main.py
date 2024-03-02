@@ -47,10 +47,11 @@ class Player:
       if coordinates_att[0] in other_ship.coordinates[0] and coordinates_att[1] in other_ship.coordinates[1]:
         print('HIT!')
         other_player.shot_log.append(coordinates_att)
-        # hit = (coordinates_att[0] - other_ship.initial_coordinates[0], coordinates_att[1] - other_ship.initial_coordinates[1])
         other_ship.hit_count -= 1
         hit_counter_temp += 1
-        other_ship.checkIfSunk()
+        other_ship.check_if_sunk()
+        if other_player.check_if_lose():
+          print(f'Player {other_player.name} has lost!')
         break
       else:
         continue
@@ -58,6 +59,20 @@ class Player:
       print('MISS!')
       other_player.shot_log.append(coordinates_att)
     print('attack finished')
+  
+  def check_if_lose(self):
+    sunk_ships = 0
+    for ship in self.fleet:
+      if ship.is_sunk:
+        sunk_ships += 1
+      else:
+        continue
+    if sunk_ships == len(self.fleet):
+      self.lose = True
+      return True
+    else:
+      return False
+
   
 
 class Ship:
@@ -101,7 +116,7 @@ class Ship:
         else:
           pass
   
-  def checkIfSunk(self):
+  def check_if_sunk(self):
     if self.hit_count == 0:
       self.is_sunk = True
       print(f"Ship from {self.belongs_to} is sunk!.")
@@ -129,6 +144,7 @@ class Board:
    +---+---+---+---+---+
 
 '''
+    self.shot_record_board = self.board_status
     self.set_board(player)
 
   def set_board(self, player):
@@ -166,6 +182,14 @@ class Board:
           index = coordinates_game[key]['pos']
           self.board_status = self.board_status[:index] + 'X' + self.board_status[index+1:]
 
+  def show_shots(self, player):
+    for i in player.shot_log:
+      for key, value in coordinates_game.items():
+        if str(i) in str(value):
+          index = coordinates_game[key]['pos']
+          self.shot_record_board = self.shot_record_board[:index] + 'X' + self.shot_record_board[index+1:]
+    print(self.shot_record_board)
+
   def __repr__(self):
     return self.board_status
   
@@ -184,11 +208,12 @@ board_michelle = Board(michelle)
 print(board_ivan)
 
 ivan.attack('C1', michelle)
-print(michelle.fleet[0].hit_count)
 ivan.attack('C2', michelle)
-print(michelle.fleet[0].hit_count)
 ivan.attack('C3', michelle)
-board_michelle.update_board(michelle)
-print(michelle.fleet[0].hit_count)
-print(board_michelle)
+ivan.attack('A2', michelle)
+ivan.attack('B2', michelle)
+ivan.attack('B4', michelle)
+board_michelle.update_board(michelle) # Esto es para que el jugador vea donde le han disparado
+board_ivan.show_shots(michelle) # Esto es para que el jugador vea donde ha disparado
+# print(board_michelle)
 
