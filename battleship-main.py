@@ -33,7 +33,7 @@ class Player:
     print("Player " + input_name + " created.")
     self.name = input_name
     self.lose = False   # Boolean for if player lost
-    self.shot_log = []  # Record of their shots
+    self.shot_log = []  # Record of the shots recieved by opponent
     self.turns = 0      # Turns counter
     self.fleet = []     # Ship objects list
   
@@ -46,7 +46,7 @@ class Player:
     for other_ship in other_player.fleet:
       if coordinates_att[0] in other_ship.coordinates[0] and coordinates_att[1] in other_ship.coordinates[1]:
         print('HIT!')
-        other_player.shot_log.append(coordinates_att)
+        other_player.shot_log.append(coordinates_att) 
         other_ship.hit_count -= 1
         hit_counter_temp += 1
         other_ship.check_if_sunk()
@@ -129,7 +129,8 @@ class Ship:
    
 class Board:
   def __init__(self, player):
-    self.owner = player.name
+    self.owner = player
+    self.owner_name = player.name
     self.board_status = '''
      A   B   C   D   E
    +---+---+---+---+---+
@@ -176,15 +177,15 @@ class Board:
           index = coordinates_game.get(i)['pos']
           self.board_status = self.board_status[:index] + '◘' + self.board_status[index+1:]
   
-  def update_board(self, player):
-    for i in player.shot_log:
+  def update_board(self):
+    for i in self.owner.shot_log:
       for key, value in coordinates_game.items():
         if str(i) in str(value):
           index = coordinates_game[key]['pos']
           self.board_status = self.board_status[:index] + 'X' + self.board_status[index+1:]
 
-  def show_shots(self, player):
-    for i in player.shot_log:
+  def show_damage(self):
+    for i in self.owner.shot_log:
       for key, value in coordinates_game.items():
         if str(i) in str(value):
           index = coordinates_game[key]['pos']
@@ -192,6 +193,7 @@ class Board:
     print(self.shot_record_board)
 
   def __repr__(self):
+    self.update_board()
     return self.board_status
 
 
@@ -224,23 +226,47 @@ How would you like to play? (only write the letter):
     sys.exit()
   elif start_game == 'a':
     print('Option a selected')
-    game_setup()
+    players_list = game_setup()
+    player_in_turn, rival = players_list # player_in_turn[0] is player object and [1] is its board
   elif start_game == 'b':
     print('Option b selected')
+  
+  while True:
+    lost_check = [player_in_turn[0], rival[0]]
+    if True in lost_check:
+      game_end(players_list[lost_check.index(True)].name)
+    else:
+      for turn in [0,1]:
+        
+        player_action = input(f"Is {player_in_turn[0].name}'s turn. What would you want to do:\n\
+                              \t\ta) Attack!\n\
+                              \t\tb) Check my board\n\
+                              \t\tc) Check shots made\n")
+      if player_action == 'exit':
+        sys.exit()
+      elif player_action == 'a':
+        attack_method()
+      elif player_action == 'b':
+        print(player_in_turn[1])
+      elif player_action == 'c':
+        rival[1].show_damage()
   
 
 
 def game_setup():
   players_list = []
+  players_boards = []
 
   for player_input in [0,1]:
     player_input_name = input(f"Enter player {player_input+1} name and hit enter: ")
     if player_input_name == 'exit':
       sys.exit()
-    players_list.append(Player(player_input_name))
-    while True:
+    player = Player(player_input_name)
+    players_list.append(player)
+    
+    while len(players_list[player_input].fleet) < 2:
       try:
-        player_input_ship_size = input("Welcome, " + str(player_input_name) + ", please enter the dimensions (width, lenght) with a max size of (2,3) of your first ship: ")
+        player_input_ship_size = input("Welcome, " + str(player_input_name) + ", please enter the dimensions (width, lenght) with a max size of (2,3) of your next ship: ")
         if player_input_ship_size == 'exit':
           sys.exit()
         values = player_input_ship_size[1:-1].split(',')
@@ -248,67 +274,64 @@ def game_setup():
           print(values[0], values[1])
           raise ValueError("Invalid dimensions. Max size is (2,3)")
         else:
-          print(type(player_input_ship_size))
-          break
+          pass
       except ValueError:
         print("DimensionsError: Invalid dimensions. Max size is (2,3)")
         pass
       
-    while True:
-      try:
-        player_input_ship_pos = input('''Now please enter the position and orientation in the following board using the classic notation (e.g: B3 h):
-        A   B   C   D   E
-      +---+---+---+---+---+
-    1 |   |   |   |   |   |
-      +---+---+---+---+---+
-    2 |   |   |   |   |   |
-      +---+---+---+---+---+
-    3 |   |   |   |   |   |
-      +---+---+---+---+---+
-    4 |   |   |   |   |   |
-      +---+---+---+---+---+
-    5 |   |   |   |   |   |
-      +---+---+---+---+---+
-                        
-    ''')
-        if player_input_ship_pos == 'exit':
-          sys.exit()
+      player_input_board = Board(player)
+      while True:
         try:
-          if player_input_ship_pos[0] not in 'ABCDE' or player_input_ship_pos[1] not in '12345' or player_input_ship_pos[3] not in 'hv':
-            raise ValueError("Invalid position")
-          else:
-            # Here creates a Ship object to check if its a valid instance with the parameters the user input
-            player1_ship = Ship(players_list[player_input], (int(values[0]), int(values[1])), player_input_ship_pos[:2], player_input_ship_pos[-1])
-            print(player1_ship)
-            break
-        except IndexError:
-          print("Input doesn't match with classic notation. (e.g: B3 h)")
-      except ValueError:
-        print("PositionError: Please enter a valid coordinate and orientation.")
+          print('Now please enter the position and orientation in the following board using the classic notation (e.g: B3 h):')
+          print(player_input_board)
+          player_input_ship_pos = input('Position and orientation: ')
+          if player_input_ship_pos == 'exit':
+            sys.exit()
+          try:
+            if player_input_ship_pos[0] not in 'ABCDE' or player_input_ship_pos[1] not in '12345' or player_input_ship_pos[3] not in 'hv':
+              raise ValueError("Invalid position")
+            else:
+              # Here creates a Ship object to check if its a valid instance with the parameters the user input
+              player_ship = Ship(players_list[player_input], (int(values[0]), int(values[1])), player_input_ship_pos[:2], player_input_ship_pos[-1])
+              players_list[player_input].fleet.append(player_ship)
+              player_input_board = Board(player)
+              print(player_input_board)
+              players_boards.append(player_input_board)
+              break
+          except IndexError:
+            print("Input doesn't match with classic notation. (e.g: B3 h)")
+        except ValueError:
+          print("PositionError: Please enter a valid coordinate and orientation.")
+  return zip(players_list, players_boards)
 
+def game_end(winner):
+  print(f'Game over, player {winner} won!')
+  sys.exit()
 
+def attack_method():
+  pass
 
-ivan = Player('Iván')
-ivan.fleet.append(Ship(ivan, (1, 2), 'E2', 'v'))
+# ivan = Player('Iván')
+# ivan.fleet.append(Ship(ivan, (1, 2), 'E2', 'v'))
 # ivan.fleet.append(Ship(ivan, (1,2), 'A3', 'v'))
 
 
 # michelle = Player('Michelle')
 # michelle.fleet.append(Ship(michelle, (1, 3), 'C3', 'v'))
 # michelle.fleet.append(Ship(michelle, (1,2), 'A2', 'h'))
-# # print(len(michelle.fleet))
+# print(len(michelle.fleet))
 
-board_ivan = Board(ivan)
+# board_ivan = Board(ivan)
 # board_michelle = Board(michelle)
-print(board_ivan)
+# print(board_ivan)
 
 # ivan.attack('C1', michelle)
 # ivan.attack('C2', michelle)
 # ivan.attack('C3', michelle)
-# ivan.attack('A2', michelle)
-# ivan.attack('B2', michelle)
-# ivan.attack('B4', michelle)
-# board_michelle.update_board(michelle) # Esto es para que el jugador vea donde le han disparado
-# Esto es para que el jugador vea donde ha disparado
+# michelle.attack('C3', ivan)
+# # board_michelle.update_board(michelle) # Esto es para que el jugador vea donde le han disparado
+# ## Esto es para que el jugador vea donde ha disparado
+# # board_michelle.show_damage()
+# board_ivan.show_damage()
 # print(board_michelle)
-#main()
+main()
