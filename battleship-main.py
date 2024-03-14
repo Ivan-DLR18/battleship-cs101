@@ -27,38 +27,44 @@ coordinates_game = {
   'D5': {'pos': 266, 'cardinal': (5,4)},
   'E5': {'pos': 270, 'cardinal': (5,5)}
 }
+poss_list_complete = [x for x in coordinates_game.keys()]
 
 class Player:
   def __init__(self, input_name):
     print("Player " + input_name + " created.")
     self.name = input_name
-    self.lose = False   # Boolean for if player lost
-    self.shot_log = []  # Record of the shots recieved by opponent
-    self.turns = 0      # Turns counter
-    self.fleet = []     # Ship objects list
+    self.lose = False         # Boolean for if player lost
+    self.shot_log = []        # Record of the shots recieved by opponent
+    self.turns = 0            # Turns counter
+    self.fleet = []           # Ship objects list
+    self.shots_made_ai = []   # For ai player
+    self.hits_ai = []         # For ai player
+    self.misses_ai = []       # For ai player
   
   def __repr__(self):
     return "The player {name_player} has {ships_player} ships left in {turns_player}.".format(self.name, len(self.fleet), self.turns)
 
   def attack(self, coordinates_att, other_player):
-    coordinates_att = coordinates_game[coordinates_att]['cardinal']
+    coordinates_att_card = coordinates_game[coordinates_att]['cardinal']
     hit_counter_temp = 0
     for other_ship in other_player.fleet:
-      if coordinates_att[0] in other_ship.coordinates[0] and coordinates_att[1] in other_ship.coordinates[1]:
-        print('HIT!')
-        other_player.shot_log.append(coordinates_att) 
+      if coordinates_att_card[0] in other_ship.coordinates[0] and coordinates_att_card[1] in other_ship.coordinates[1]:
+        other_player.shot_log.append(coordinates_att_card) 
+        self.hits_ai.append(coordinates_att)
+        self.shots_made_ai.append(coordinates_att)
         other_ship.hit_count -= 1
-        hit_counter_temp += 1
         other_ship.check_if_sunk()
+        hit_counter_temp += 1
         if other_player.check_if_lose():
-          print(f'Player {other_player.name} has lost!')
-        break
+          other_player.lose = True
+          return True
+        return 'HIT!'
       else:
         continue
     if hit_counter_temp == 0:
-      print('MISS!')
-      other_player.shot_log.append(coordinates_att)
-    print('attack finished')
+      other_player.shot_log.append(coordinates_att_card)
+      self.shots_made_ai.append(coordinates_att)
+      return 'MISS!'
   
   def check_if_lose(self):
     sunk_ships = 0
@@ -84,6 +90,7 @@ class Ship:
     self.coordinate = coordinates_game[coordinate]['cardinal']
     self.is_sunk = False
     self.hit_count = dimensions[0]*dimensions[1]
+    print(f"Ship for {self.belongs_to} created with dimensions: {dimensions[0]}, {dimensions[1]} therefore: {self.hit_count}")
     if orientation == 'h':
       if self.coordinate[1] > 6-dimensions[1]:
         raise ValueError("Invalid positioning. Ship doesn't fit.")
@@ -101,8 +108,12 @@ class Ship:
       self.coordinates = [list(range(j, j+i)) for i, j in zip(dimensions, self.coordinate)]
     else:
       self.coordinates = []
-      self.coordinates.append(list(range(self.coordinate[0]-dimensions[1]+1, self.coordinate[0]+1)))
-      self.coordinates.append(list(range(self.coordinate[1], self.coordinate[1]+1)))
+      if dimensions[0] == 2:
+        self.coordinates.append(list(range(self.coordinate[0]-dimensions[1]+1, self.coordinate[0]+1)))
+        self.coordinates.append(list(range(self.coordinate[1], self.coordinate[1]+2)))
+      else:
+        self.coordinates.append(list(range(self.coordinate[0]-dimensions[1]+1, self.coordinate[0]+1)))
+        self.coordinates.append(list(range(self.coordinate[1], self.coordinate[1]+1)))
 
     self.all_coordinates = []
     for i in self.coordinates[0]:
@@ -116,11 +127,15 @@ class Ship:
           raise ValueError("Invalid coordinate. Ship doesn't fit.")
         else:
           pass
+    
   
   def check_if_sunk(self):
     if self.hit_count == 0:
       self.is_sunk = True
       print(f"Ship from {self.belongs_to} is sunk!.")
+      return True
+    else:
+      return False
   
   def __repr__(self):
     return f"This ship belongs to {self.belongs_to} its dimensions are {self.size}."
@@ -169,13 +184,26 @@ class Board:
           index = coordinates_game.get(i)['pos']
           self.board_status = self.board_status[:index] + '◘' + self.board_status[index+1:]
       elif ship.orientation == 'v':
-        index = coordinates_game.get(ship_pos[0])['pos']
-        self.board_status = self.board_status[:index] + '∆' + self.board_status[index+1:]
-        index = coordinates_game.get(ship_pos[-1])['pos']
-        self.board_status = self.board_status[:index] + '∇' + self.board_status[index+1:]
-        for i in ship_pos[1:-1]:
-          index = coordinates_game.get(i)['pos']
-          self.board_status = self.board_status[:index] + '◘' + self.board_status[index+1:]
+        if ship.size[0] == 2:
+          index = coordinates_game.get(ship_pos[0])['pos']
+          self.board_status = self.board_status[:index] + '∆' + self.board_status[index+1:]
+          index = coordinates_game.get(ship_pos[1])['pos']
+          self.board_status = self.board_status[:index] + '∆' + self.board_status[index+1:]
+          index = coordinates_game.get(ship_pos[-1])['pos']
+          self.board_status = self.board_status[:index] + '∇' + self.board_status[index+1:]
+          index = coordinates_game.get(ship_pos[-2])['pos']
+          self.board_status = self.board_status[:index] + '∇' + self.board_status[index+1:]
+          for i in ship_pos[2:-2]:
+            index = coordinates_game.get(i)['pos']
+            self.board_status = self.board_status[:index] + '◘' + self.board_status[index+1:]
+        else:
+          index = coordinates_game.get(ship_pos[0])['pos']
+          self.board_status = self.board_status[:index] + '∆' + self.board_status[index+1:]
+          index = coordinates_game.get(ship_pos[-1])['pos']
+          self.board_status = self.board_status[:index] + '∇' + self.board_status[index+1:]
+          for i in ship_pos[1:-1]:
+            index = coordinates_game.get(i)['pos']
+            self.board_status = self.board_status[:index] + '◘' + self.board_status[index+1:]
   
   def update_board(self):
     for i in self.owner.shot_log:
@@ -198,9 +226,15 @@ class Board:
 
 
 import sys
+import os
+import time
+import random
 
 def main():
-  start_game = input('''
+
+  while True:
+    os.system('cls' if os.name == 'nt' else 'clear')
+    start_game = input('''
 ██████╗  █████╗ ████████╗████████╗██╗     ███████╗███████╗██╗  ██╗██╗██████╗ 
 ██╔══██╗██╔══██╗╚══██╔══╝╚══██╔══╝██║     ██╔════╝██╔════╝██║  ██║██║██╔══██╗
 ██████╔╝███████║   ██║      ██║   ██║     █████╗  ███████╗███████║██║██████╔╝
@@ -221,57 +255,118 @@ How would you like to play? (only write the letter):
     b) Player vs Computer
         
 ''').lower()
-  
-  if start_game == 'exit':
-    sys.exit()
-  elif start_game == 'a':
-    print('Option a selected')
-    players_list = game_setup()
-    player_in_turn, rival = players_list # player_in_turn[0] is player object and [1] is its board
-  elif start_game == 'b':
-    print('Option b selected')
+    if start_game == 'exit':
+      sys.exit()
+
+    elif start_game == 'a':
+      print('Option a selected')
+      players_list = game_setup()
+      players = [0,1]
+      break
+
+    elif start_game == 'b':
+      print('Option b selected')
+      players_list = game_setup(False)
+      players = [0, 2]
+      ai_player = players_list[0][1]
+      break
+
+    else:
+      print('Invalid input, try again')
+      time.sleep(1)
+      pass
+
   
   while True:
-    lost_check = [player_in_turn[0], rival[0]]
-    if True in lost_check:
-      game_end(players_list[lost_check.index(True)].name)
-    else:
-      for turn in [0,1]:
-        
-        player_action = input(f"Is {player_in_turn[0].name}'s turn. What would you want to do:\n\
-                              \t\ta) Attack!\n\
-                              \t\tb) Check my board\n\
-                              \t\tc) Check shots made\n")
-      if player_action == 'exit':
-        sys.exit()
-      elif player_action == 'a':
-        attack_method()
-      elif player_action == 'b':
-        print(player_in_turn[1])
-      elif player_action == 'c':
-        rival[1].show_damage()
+    for turn in players:
+      if turn != 2:
+        player_in_turn = players_list[0][turn]
+        player_in_turn_board = players_list[1][turn]
+        rival = players_list[0][turn-1] # player_in_turn[0] is player object and [1] is its board
+        rival_board = players_list[1][turn-1] # player_in_turn[0] is player object and [1] is its board
+
+        turn_taken = False
+        while not turn_taken:
+          player_action = input(f"Is {player_in_turn.name}'s turn. What would you want to do:\n\ta) Attack!\n\tb) Check my board\n\tc) Check shots made\n")
+          if player_action == 'exit':
+            sys.exit()
+          elif player_action == 'a':
+            outcome = attack_method(player_in_turn, rival)
+            if outcome == None:
+              pass
+            elif outcome == True:
+              lost_check = [players_list[0][0].lose, players_list[0][1].lose]
+              if True in lost_check:
+                game_end(players_list[0][lost_check.index(False)].name)
+            else:
+              print('\n')
+              print(outcome)
+              print('\n')
+              turn_taken = True
+          elif player_action == 'b':
+            print(player_in_turn_board, end='', flush=True)
+
+            for i in range(5,0,-1):
+              print(f'This board will be erased to avoid cheating in: {i} seconds', end='\r')
+              time.sleep(1)
+            # Erase board to avoid cheating 
+            for _ in range(15):
+              sys.stdout.write("\033[K")  # Clear the current line
+              sys.stdout.write("\033[F")  # Move cursor to the beginning of the previous line
+            print('\n')
+          elif player_action == 'c':
+            rival_board.show_damage()
+
+            for i in range(5,0,-1):
+              print(f'This board will be erased to avoid cheating in: {i} seconds', end='\r')
+              time.sleep(1)
+            # Erase board to avoid cheating 
+            for _ in range(16):
+              sys.stdout.write("\033[K")  # Clear the current line
+              sys.stdout.write("\033[F")  # Move cursor to the beginning of the previous line
+            print('\n')
+      else:
+        past_fleet_status = [x.is_sunk for x in players_list[0][0].fleet]
+        print(f"Now it's {ai_player.name}. Get ready to get attacked!")
+        shot = ai_attack(ai_player)
+        outcome = ai_player.attack(shot, players_list[0][0])
+        actual_fleet_status = [x.is_sunk for x in players_list[0][0].fleet]
+        if past_fleet_status != actual_fleet_status:
+          players_list[0][1].hits_ai = []
+        else:
+          pass
+        if outcome == True:
+          if players_list[0][0].lose:
+            game_end(players_list[0][1].name)
+        else:
+          print('\n')
+          print(outcome)
+          print('\n')
   
 
 
-def game_setup():
+def game_setup(pvp = True):
   players_list = []
   players_boards = []
+  if pvp:
+    players = [0,1]
+  else:
+    players = [0]
 
-  for player_input in [0,1]:
+  for player_input in players:
     player_input_name = input(f"Enter player {player_input+1} name and hit enter: ")
     if player_input_name == 'exit':
       sys.exit()
     player = Player(player_input_name)
     players_list.append(player)
     
-    while len(players_list[player_input].fleet) < 2:
+    while len(players_list[player_input].fleet) < 1:
       try:
-        player_input_ship_size = input("Welcome, " + str(player_input_name) + ", please enter the dimensions (width, lenght) with a max size of (2,3) of your next ship: ")
+        player_input_ship_size = input("Welcome, " + str(player_input_name) + ", please enter the dimensions (width, lenght) with a from the list [(1,2), (1,3), (2,3)] of your next ship: ")
         if player_input_ship_size == 'exit':
           sys.exit()
         values = player_input_ship_size[1:-1].split(',')
         if int(values[0]) > 2 or int(values[1]) > 3:
-          print(values[0], values[1])
           raise ValueError("Invalid dimensions. Max size is (2,3)")
         else:
           pass
@@ -295,43 +390,186 @@ def game_setup():
               player_ship = Ship(players_list[player_input], (int(values[0]), int(values[1])), player_input_ship_pos[:2], player_input_ship_pos[-1])
               players_list[player_input].fleet.append(player_ship)
               player_input_board = Board(player)
-              print(player_input_board)
               players_boards.append(player_input_board)
+              print(player_input_board)
+              for i in range(2,0,-1):
+                print(f'This board will be erased to avoid cheating in: {i} seconds', end='\r')
+                time.sleep(1)
+              # Erase board to avoid cheating 
+              for _ in range(16):
+                sys.stdout.write("\033[K")  # Clear the current line
+                sys.stdout.write("\033[F")  # Move cursor to the beginning of the previous line
+              print('\n')
               break
           except IndexError:
             print("Input doesn't match with classic notation. (e.g: B3 h)")
         except ValueError:
           print("PositionError: Please enter a valid coordinate and orientation.")
-  return zip(players_list, players_boards)
+  if pvp:
+    return [[players_list[0], players_list[1]],[players_boards[0], players_boards[1]]]
+  else:
+    ai_player = generate_AI()
+    return [[players_list[0], ai_player[0]],[players_boards[0], ai_player[1]]]
+  
+
 
 def game_end(winner):
-  print(f'Game over, player {winner} won!')
+  print(f'\n\nGAME OVER, {winner.upper()} WINS!\n\n')
   sys.exit()
 
-def attack_method():
-  pass
+def attack_method(player, rival):
+  shot = input(f"Okay, {player.name} get ready to attack {rival.name}.\nPlease write the coordinates of your attack (e.g: A1):\n")
+  if shot == 'exit':
+    sys.exit()
+  elif shot == 'back':
+    return
+  else:
+    return player.attack(shot, rival)
 
-# ivan = Player('Iván')
-# ivan.fleet.append(Ship(ivan, (1, 2), 'E2', 'v'))
-# ivan.fleet.append(Ship(ivan, (1,2), 'A3', 'v'))
+def ai_attack(ai_player):
+  global shot_select
+  shot_select = ''
+  shots_made = ai_player.shots_made_ai
+  try:
+    last_shot = shots_made[-1]
+  except IndexError:
+    last_shot = 'F6'
+  hits = ai_player.hits_ai
+  poss_shots = [x for x in poss_list_complete if x not in shots_made]
+  best_shots = []
+
+  def search_nearby():
+    nearby_hits = []
+    for i in hits:
+      for x in get_next_shots(i):
+        nearby_hits.append(x)
+    return nearby_hits
+  
+  def neighbor():
+    if len(hits) <= 1:
+      hits_neigh = hits
+    else:
+      hits_neigh = hits[:-1]
+    try:
+      for sh in [x for x in get_next_shots(hits_neigh[0]) if x not in hits_neigh and x not in shots_made]:
+        best_shots.append(sh)
+      return random.choice(best_shots)
+    except IndexError:
+      nearby_list = search_nearby()
+      nearby_list = [x for x in search_nearby() if x not in hits_neigh and x not in shots_made]
+      for sh in nearby_list:
+        best_shots.append(sh)
+      return random.choice(best_shots)
+  
+  if len(hits) == 1 or shot_select == last_shot:
+    shot_select = neighbor()
+
+  elif len(hits) > 1:
+    if len(hits) <= 3:
+      common_coord = hits[0][0] if hits[0][0] == hits[1][0] else hits[0][1]
+    else:
+      common_coord = hits[-2][0] if hits[-2][0] == hits[-1][0] else hits[-2][1]
+    try:
+      if common_coord in 'ABCDE':
+        for sh in [x for x in get_next_shots(hits[-1], 'h') if x not in hits and x not in shots_made]:
+          best_shots.append(sh)
+        shot_select = random.choice(best_shots)
+      else:
+        for sh in [x for x in get_next_shots(hits[-1], 'v') if x not in hits and x not in shots_made]:
+          best_shots.append(sh)
+        shot_select = random.choice(best_shots)
+    except IndexError:
+      shot_select = neighbor()
+
+  else:
+    shot_select = random.choice(poss_shots)
+  
+  return shot_select
+      
+
+def generate_AI():
+  ai = Player('dAIvid Jones')
+  poss_list = [x for x in coordinates_game.keys() if 'E' not in x]
+  orient = random.choice(['h', 'v'])
+  if orient == 'h':
+    poss_list = [x for x in coordinates_game.keys() if 'E' not in x]
+  else:
+    poss_list = [x for x in coordinates_game.keys() if '1' not in x]
+  
+  while len(ai.fleet) < 1:
+    values = random.choice([(1,2), (1,3), (2,2), (2,3)])
+    ai_board = Board(ai)
+    while True:
+      try:
+        ai_ship_poss = random.choice(poss_list)
+        # Here creates a Ship object to check if its a valid instance with the parameters the user input
+        ai_ship = Ship(ai, values, ai_ship_poss, orient)
+        ai.fleet.append(ai_ship)
+        break
+      except ValueError:
+        print("PositionError: Please enter a valid coordinate and orientation.")
+    
+  ai_board = Board(ai)
+  return [ai, ai_board]
+
+def get_next_shots(coordinate, straight=None):
+  col = coordinate[0]
+  row = coordinate[1]
+  columns = ['A', 'B', 'C', 'D', 'E']
+  rows = ['1', '2', '3', '4', '5']
+
+  poss_shots = []
+  poss_cols = []
+  poss_rows = []
+  if straight == 'h':
+    if rows.index(row) == 0:
+      poss_rows.append(rows[rows.index(row)+1])
+    elif rows.index(row) == 4:
+      poss_rows.append(rows[rows.index(row)-1])
+    else:
+      poss_rows.append(rows[rows.index(row)-1])
+      poss_rows.append(rows[rows.index(row)+1])
+    
+    for x in poss_rows:
+      poss_shots.append(col+x)
+    return poss_shots
+      
+
+  elif straight == 'v':
+    if columns.index(col) == 0:
+      poss_cols.append(columns[columns.index(col)+1])
+    elif columns.index(col) == 4:
+      poss_cols.append(columns[columns.index(col)-1])
+    else:
+      poss_cols.append(columns[columns.index(col)-1])
+      poss_cols.append(columns[columns.index(col)+1])
+
+    for x in poss_cols:
+      poss_shots.append(x+row)
+    return poss_shots
+
+  else:
+    if columns.index(col) == 0:
+      poss_cols.append(columns[columns.index(col)+1])
+    elif columns.index(col) == 4:
+      poss_cols.append(columns[columns.index(col)-1])
+    else:
+      poss_cols.append(columns[columns.index(col)-1])
+      poss_cols.append(columns[columns.index(col)+1])
+
+    if rows.index(row) == 0:
+      poss_rows.append(rows[rows.index(row)+1])
+    elif rows.index(row) == 4:
+      poss_rows.append(rows[rows.index(row)-1])
+    else:
+      poss_rows.append(rows[rows.index(row)-1])
+      poss_rows.append(rows[rows.index(row)+1])
+
+    for x in poss_cols:
+      poss_shots.append(x+row)
+    for y in poss_rows:
+      poss_shots.append(col+y)
+    return poss_shots
 
 
-# michelle = Player('Michelle')
-# michelle.fleet.append(Ship(michelle, (1, 3), 'C3', 'v'))
-# michelle.fleet.append(Ship(michelle, (1,2), 'A2', 'h'))
-# print(len(michelle.fleet))
-
-# board_ivan = Board(ivan)
-# board_michelle = Board(michelle)
-# print(board_ivan)
-
-# ivan.attack('C1', michelle)
-# ivan.attack('C2', michelle)
-# ivan.attack('C3', michelle)
-# michelle.attack('C3', ivan)
-# # board_michelle.update_board(michelle) # Esto es para que el jugador vea donde le han disparado
-# ## Esto es para que el jugador vea donde ha disparado
-# # board_michelle.show_damage()
-# board_ivan.show_damage()
-# print(board_michelle)
 main()
