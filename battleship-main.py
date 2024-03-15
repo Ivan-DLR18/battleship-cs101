@@ -27,21 +27,22 @@ coordinates_game = {
 }
 poss_list_complete = [x for x in coordinates_game.keys()]
 
+# Player class
 class Player:
   def __init__(self, input_name):
     print("Player " + input_name + " created.")
     self.name = input_name
     self.lose = False         # Boolean for if player lost
     self.shot_log = []        # Record of the shots recieved by opponent
-    self.turns = 0            # Turns counter
     self.fleet = []           # Ship objects list
     self.shots_made_ai = []   # For ai player
     self.hits_ai = []         # For ai player
-    self.sunked = [x.is_sunk for x in self.fleet].count(True)
+    self.sunken = [x.is_sunk for x in self.fleet].count(True)
   
   def __repr__(self):
-    return f"The player {self.name} has {len(self.fleet) - self.sunked} ships left."
+    return f"The player {self.name} has {len(self.fleet) - self.sunken} ships left."
 
+  # Player's ability to attack other player and keep track of damage
   def attack(self, coordinates_att, other_player):
     coordinates_att_card = coordinates_game[coordinates_att]['cardinal']
     hit_counter_temp = 0
@@ -77,7 +78,7 @@ class Player:
       return False
 
   
-
+# Ship class
 class Ship:
   def __init__(self, owner, dimensions, coordinate, orientation='h'):
     self.owner = owner
@@ -146,8 +147,7 @@ class Ship:
   def __repr__(self):
     return f"This ship belongs to {self.belongs_to} its dimensions are {self.size}."
 
-# ∆∇<>◘
-   
+# Board class
 class Board:
   def __init__(self, player):
     self.owner = player
