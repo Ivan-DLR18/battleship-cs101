@@ -34,6 +34,8 @@ class Player:
     self.name = input_name
     self.lose = False         # Boolean for if player lost
     self.shot_log = []        # Record of the shots recieved by opponent
+    self.hits_recieved = []
+    self.misses_recieved = []
     self.fleet = []           # Ship objects list
     self.shots_made_ai = []   # For ai player
     self.hits_ai = []         # For ai player
@@ -49,6 +51,7 @@ class Player:
     for other_ship in other_player.fleet:
       if coordinates_att_card[0] in other_ship.coordinates[0] and coordinates_att_card[1] in other_ship.coordinates[1]:
         other_player.shot_log.append(coordinates_att_card) 
+        other_player.hits_recieved.append(coordinates_att) 
         self.hits_ai.append(coordinates_att)
         self.shots_made_ai.append(coordinates_att)
         other_ship.check_if_sunk()
@@ -60,7 +63,7 @@ class Player:
       else:
         continue
     if hit_counter_temp == 0:
-      other_player.shot_log.append(coordinates_att_card)
+      other_player.misses_recieved.append(coordinates_att)
       self.shots_made_ai.append(coordinates_att)
       return 'MISS!'
   
@@ -236,26 +239,30 @@ class Board:
             self.board_status = self.board_status[:index] + '◘' + self.board_status[index+1:]
   
   def update_board(self):
-    for i in self.owner.shot_log:
-      for key, value in coordinates_game.items():
-        if str(i) in str(value):
-          index = coordinates_game[key]['pos']
-          self.board_status = self.board_status[:index] + 'X' + self.board_status[index+1:]
+    for i in self.owner.hits_recieved:
+      index = coordinates_game[i]['pos']
+      self.board_status = self.board_status[:index] + '⨀' + self.board_status[index+1:]
+    for i in self.owner.misses_recieved:
+      index = coordinates_game[i]['pos']
+      self.board_status = self.board_status[:index] + 'X' + self.board_status[index+1:]
 
   def show_damage(self):
-    print(self.owner.shots_made_ai)
-    print(self.owner.hits_ai)
-    for i in self.owner.shot_log:
-      for key, value in coordinates_game.items():
-        if str(i) in str(value) and key in self.owner.hits_ai:
-          print('key: ', key)
-          print('value: ', value)
-          index = coordinates_game[key]['pos']
-          self.shot_record_board = self.shot_record_board[:index] + 'X' + self.shot_record_board[index+1:]
-  
-        elif str(i) in str(value) and str(i):
-          index = coordinates_game[key]['pos']
-          self.shot_record_board = self.shot_record_board[:index] + 'O' + self.shot_record_board[index+1:]       
+    # print('shots_made_ai: ', self.owner.shots_made_ai)
+    # print('hits_ai: ', self.owner.hits_ai)
+    misses = [x for x in self.owner.shots_made_ai if x not in self.owner.hits_ai]
+    # print('misses: ', misses)
+    # print('shot_log: ', self.owner.shot_log)
+    for i in self.owner.shots_made_ai:
+      if i in self.owner.hits_ai:
+        index = coordinates_game[i]['pos']
+        self.shot_record_board = self.shot_record_board[:index] + '⨀' + self.shot_record_board[index+1:]
+      
+      elif i in misses:
+        index = coordinates_game[i]['pos']
+        self.shot_record_board = self.shot_record_board[:index] + 'X' + self.shot_record_board[index+1:]
+
+      else:
+        pass      
     print(self.shot_record_board)
 
   def __repr__(self):
@@ -281,8 +288,10 @@ def main():
 ╚═════╝ ╚═╝  ╚═╝   ╚═╝      ╚═╝   ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝╚═╝     
                                                 By: Iván Díaz de León R.
 
-Welcome to battleship, in this game each player will build their own fleet of two ships 
-with dimensions between (1,2) to (2,3) and position them in a grid that goes from A1 to D5.
+Welcome to battleship, this version inspired by the popular battleship game isa project for the
+CS101 Codecademy Computer Science career path. In this game each player will build their own fleet 
+of two ships with dimensions between (1,2) to (2,3) and position them in a grid that goes from A1 to D5.
+
 Players will take turns to try to hit an enemy ship until they sink all their fleet.
 Good luck and have fun!
 (At any moment, if you want to hard exit the game, whenever you're asked to input something 
@@ -387,12 +396,12 @@ b) Standard game (2 ships per player)
               sys.stdout.write("\033[F")  # Move cursor to the beginning of the previous line
             print('\n')
           elif player_action == 'c':
-            rival_board.show_damage()
+            player_in_turn_board.show_damage()
             print('\n')
 
       else:
         past_fleet_status = [x.is_sunk for x in players_list[0][0].fleet]
-        print(f"Now it's {ai_player.name}. Get ready to get attacked!")
+        print(f"Now is {ai_player.name}'s turn. Get ready to get attacked!")
         shot = ai_attack(ai_player)
         outcome = ai_player.attack(shot, players_list[0][0])
         actual_fleet_status = [x.is_sunk for x in players_list[0][0].fleet]
@@ -407,6 +416,7 @@ b) Standard game (2 ships per player)
           print('\n')
           print(outcome)
           print('\n')
+        time.sleep(3)
     
 
 
@@ -434,7 +444,7 @@ def game_setup(ships_per_player=2, pvp=True):
         sys.stdout.write("\033[K")  # Clear the current line
         sys.stdout.write("\033[F")  # Move cursor to the beginning of the previous line
         sys.stdout.write("\033[K")  # Clear the current line
-        print("Welcome, " + str(player_input_name) + ", please enter the dimensions (width, lenght) with a from the list [(1,2), (1,3), (2,3)] of your next ship: (?,?)")
+        print("Welcome, " + str(player_input_name) + ", please enter the dimensions (width, lenght) with a from the list [(1,2), (1,3), (2,2), (2,3)] of your next ship: (?,?)")
         print('\n')
         
         if player_input_ship_size == 'exit':
