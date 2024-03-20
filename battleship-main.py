@@ -288,7 +288,7 @@ def main():
 ╚═════╝ ╚═╝  ╚═╝   ╚═╝      ╚═╝   ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝╚═╝     
                                                 By: Iván Díaz de León R.
 
-Welcome to battleship, this version inspired by the popular battleship game isa project for the
+Welcome to battleship, this version inspired by the popular battleship game is a project for the
 CS101 Codecademy Computer Science career path. In this game each player will build their own fleet 
 of two ships with dimensions between (1,2) to (2,3) and position them in a grid that goes from A1 to D5.
 
@@ -370,6 +370,7 @@ b) Standard game (2 ships per player)
           player_action = input(f"Is {player_in_turn.name}'s turn. What would you want to do:\n\ta) Attack!\n\tb) Check my board\n\tc) Check shots made\n")
           if player_action == 'exit':
             sys.exit()
+
           elif player_action == 'a':
             outcome = attack_method(player_in_turn, rival)
             if outcome == None:
@@ -398,6 +399,8 @@ b) Standard game (2 ships per player)
           elif player_action == 'c':
             player_in_turn_board.show_damage()
             print('\n')
+          else:
+            pass
 
       else:
         past_fleet_status = [x.is_sunk for x in players_list[0][0].fleet]
@@ -512,7 +515,7 @@ def game_end(winner, winner_board, loser_board):
  _____                                    _____ 
 ( ___ )----------------------------------( ___ )
  |   | ░█▀▀░█▀█░█▄█░█▀▀░░░█▀█░█░█░█▀▀░█▀▄ |   | 
- |   | ░█░█░█▀█░█░█░█▀▀░░░█░█░▀▄▀░█▀▀░█▀▄ |   | 
+ |   | ░█░█░█▀█░█░█░█▀▀░░░█░█░█░█░█▀▀░█▀▄ |   | 
  |   | ░▀▀▀░▀░▀░▀░▀░▀▀▀░░░▀▀▀░░▀░░▀▀▀░▀░▀ |   | 
  |   |                                    |   |
  |___|                                    |___| 
@@ -521,9 +524,9 @@ def game_end(winner, winner_board, loser_board):
 
 """
 
-    string = ' ' * math.floor((37-leng)/2) + string + ' ' * math.ceil((37-leng)/2)
+    string = ' ' * math.floor((36-leng)/2) + string + ' ' * math.ceil((36-leng)/2)
     leng = len(string)
-    cartel = cartel[:300] + string + cartel[337:]
+    cartel = cartel[:301] + string + cartel[337:]
     return cartel
   print(winner_board, loser_board)
   print(cartel_print(winner.name))
@@ -531,13 +534,16 @@ def game_end(winner, winner_board, loser_board):
   sys.exit()
 
 def attack_method(player, rival):
-  shot = input(f"Okay, {player.name} get ready to attack {rival.name}.\nPlease write the coordinates of your attack (e.g: A1):\n")
-  if shot == 'exit':
-    sys.exit()
-  elif shot == 'back':
-    return
-  else:
-    return player.attack(shot, rival)
+  while True:
+    shot = input(f"Okay, {player.name} get ready to attack {rival.name}.\nPlease write the coordinates of your attack (e.g: A1):\n(Write 'back' to go back)\n")
+    if shot == 'exit':
+      sys.exit()
+    elif shot == 'back':
+      return
+    elif shot[0] in 'ABCDE' and shot[1] in '12345':
+      return player.attack(shot, rival)
+    else:
+      continue
 
 def ai_attack(ai_player):
   global shot_select
